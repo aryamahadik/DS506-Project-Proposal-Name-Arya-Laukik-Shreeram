@@ -1,6 +1,8 @@
 Project Proposal: Predicting Bank Customer Churn
 Names: Arya Mahadik, Laukik Khade, Sreeram Maguluri DS506
+
 Introduction
+
 In this project we are trying to find why customers leave a bank. Basically We want to look at customer data and figure out who is likely to close their account known as churning and who is likely to stay. By analyzing things like credit scores, age and balance we can find patterns when a customer might be unhappy or to leave
 
 Goals:
