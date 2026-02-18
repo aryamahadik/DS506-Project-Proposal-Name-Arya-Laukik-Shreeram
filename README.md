@@ -1,4 +1,5 @@
 Project Proposal: Predicting Bank Customer Churn
+
 Names: Arya Mahadik, Laukik Khade, Sreeram Maguluri DS506
 
 Introduction
