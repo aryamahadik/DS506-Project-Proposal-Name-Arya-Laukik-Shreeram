@@ -27,7 +27,16 @@ We will use a dataset that is already available which contains information of th
 
 
 
+Project Timeline:
 
+Week 1 - Download the dataset and clean the data (handle missing values, encode categorical variables like country and gender).
+Week 2 - Visualize the data using bar charts, histograms, and heatmaps.
+Week 3 - Build and train the models (Logistic Regression, Random Forest, XGBoost).
+Week 4 - Test the models and compare results using accuracy, precision, and recall.
+
+Data Collection Methods:
+
+We will download the dataset directly from Kaggle. Before modeling, we will clean the data by checking for missing values and converting text columns like country and gender into numbers so the models can understand them.
 
 Modeling:
 
