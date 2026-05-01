@@ -1,64 +1,140 @@
 # Bank Customer Churn Prediction
 
-**Presentation video:** TODO: replace this with the YouTube recording link before submission.
+**Presentation video:** Paste the final YouTube recording link here before submission.
 
 ## How To Build And Run
 
-This project uses a Makefile so the results can be reproduced from a fresh checkout.
+Run these commands from the repository root:
 
 ```bash
 make install
 make build
 ```
 
-`make install` installs the Python dependencies in `requirements.txt`. `make build` runs the automated tests and generates the interactive dashboard at `visualizations/churn_dashboard.html`.
+`make install` installs all Python dependencies from `requirements.txt`. `make build` runs the automated tests and generates the interactive dashboard at `visualizations/churn_dashboard.html`.
 
-Useful individual commands:
-
-```bash
-make test        # run the pytest test suite
-make dashboard   # build the interactive HTML dashboard
-make notebook    # execute the full modeling notebook with nbconvert
-```
-
-To inspect or rerun the full analysis interactively:
+To reproduce the full notebook analysis and model outputs:
 
 ```bash
-jupyter notebook "churn pipeline.ipynb"
+make notebook
 ```
 
-The main dataset file, `Churn_Modelling.csv`, must be present in the project root.
+Useful commands:
 
-## Project Goal
+```bash
+make test        # run the pytest suite
+make dashboard   # regenerate visualizations/churn_dashboard.html
+make notebook    # execute churn pipeline.ipynb with nbconvert
+make clean       # remove generated caches/dashboard output
+```
 
-The goal is to predict which bank customers are likely to churn so the bank can target retention campaigns before losing those customers. The model is optimized around F1-score and AUC-ROC because the churn class is imbalanced: only about 20.4% of customers exited.
+If `make` is not available on your machine, use the equivalent Python commands:
 
-The business framing used in the notebook is:
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q
+python -m src.make_dashboard --input Churn_Modelling.csv --output visualizations/churn_dashboard.html
+python -m jupyter nbconvert --to notebook --execute --inplace "churn pipeline.ipynb"
+```
 
-- Retention campaign cost: `$500` per targeted customer
-- Customer lifetime value: `$10,000`
-- Objective: identify high-risk customers accurately enough that targeted retention produces positive net value
+The dataset file `Churn_Modelling.csv` must be present in the repository root.
 
-## Data Processing And Modeling
+## Project Overview
 
-The raw dataset contains 10,000 customers and 14 columns. The notebook drops identifier columns (`RowNumber`, `CustomerId`, `Surname`) before modeling, leaving 11 modeling columns including the target, `Exited`.
+This project predicts whether a bank customer will churn using customer demographics, account information, product usage, and activity indicators. The task is binary classification: `Exited = 1` means the customer churned, and `Exited = 0` means the customer stayed.
 
-Feature engineering adds 10 domain features:
+The project follows the full data science lifecycle required for CS506:
+
+- Data collection
+- Data cleaning
+- Feature extraction
+- Data visualization
+- Model training
+- Model evaluation and interpretation
+
+The main analysis is in `churn pipeline.ipynb`. Reusable cleaning, feature engineering, modeling, and dashboard code lives in `src/` so the project can also be tested and run from the command line.
+
+## Repository Organization
+
+```text
+.
+|-- .github/workflows/tests.yml        # GitHub Actions test workflow
+|-- Churn_Modelling.csv                # Raw collected dataset
+|-- Makefile                           # Reproducible build/test commands
+|-- README.md                          # Final project report
+|-- requirements.txt                   # Python dependencies
+|-- churn pipeline.ipynb               # Main end-to-end analysis notebook
+|-- src/
+|   |-- __init__.py
+|   |-- churn_pipeline.py              # Data loading, cleaning, features, model helpers
+|   `-- make_dashboard.py              # Interactive dashboard generator
+|-- tests/
+|   `-- test_churn_pipeline.py         # Core pytest checks
+|-- visualizations/
+|   `-- churn_dashboard.html           # Generated interactive dashboard
+`-- *.png                              # Notebook-generated figures
+```
+
+## Data Collection
+
+The project uses the public `Churn_Modelling.csv` bank customer churn dataset. The dataset was collected as a CSV file and committed to the repository so results are reproducible without API keys, external scraping, or private credentials.
+
+The collection/loading step is implemented in `src/churn_pipeline.py` through `load_raw_data`, which reads the CSV used by the notebook, dashboard, and tests.
+
+## Data Cleaning
+
+The raw dataset has 10,000 rows and 14 columns. Cleaning removes identifier columns that should not be used for prediction:
+
+- `RowNumber`
+- `CustomerId`
+- `Surname`
+
+The cleaning code also removes duplicate rows, standardizes categorical text, and defensively fills numeric/categorical missing values. The provided dataset has no missing values after cleaning. Cleaning is implemented in `src/churn_pipeline.py` and used by both the tests and dashboard.
+
+## Feature Extraction
+
+The model uses the original customer/account columns plus 4 engineered features:
 
 - `Balance_Income_Ratio`
 - `Products_Per_Tenure`
-- `Is_Active`
-- `Has_Credit_Card`
-- `Age_Squared`
-- `Salary_Per_Product`
 - `Balance_Product_Interaction`
-- `Zero_Balance`
-- `High_Balance`
 - `Senior_Citizen_Age`
 
-Preprocessing uses `StandardScaler` for numeric features and `OneHotEncoder` for categorical features (`Geography`, `Gender`). The train/test split is stratified, and SMOTE is applied only to the training data in the full notebook to reduce class imbalance without leaking synthetic examples into the test set.
+These features represent account intensity, product usage over tenure, balance/product interaction, and senior-customer effects. Earlier duplicate or highly correlated candidates were removed: `Is_Active`, `Has_Credit_Card`, `Age_Squared`, `Salary_Per_Product`, `Zero_Balance`, and `High_Balance`. This keeps the correlation matrix cleaner and avoids adding features that mostly repeat existing variables. Feature extraction is implemented in `src/churn_pipeline.py` and in the notebook.
 
-Models evaluated:
+## Visualization
+
+The notebook generates final-quality static visualizations:
+
+- Categorical churn patterns by geography/gender/activity/product count
+- Age distribution for churned vs. retained customers
+- Correlation heatmap
+- Model comparison chart
+- ROC curves
+- Precision-recall curves
+- Confusion matrices
+- Feature importance
+- Learning curves
+
+The project also includes an interactive HTML dashboard generated by:
+
+```bash
+make dashboard
+```
+
+Dashboard output: `visualizations/churn_dashboard.html`.
+
+![Categorical churn patterns](eda_categorical.png)
+
+![Model comparison](model_comparison_comprehensive.png)
+
+![ROC curves](roc_curves.png)
+
+![Precision-recall curves](precision_recall_curves.png)
+
+## Modeling
+
+The notebook compares several classification models:
 
 - Logistic Regression
 - Decision Tree
@@ -68,107 +144,63 @@ Models evaluated:
 - Tuned XGBoost
 - Tuned LightGBM
 
-The tuned models use `GridSearchCV` with 5-fold stratified cross-validation and F1-score as the optimization metric.
+Preprocessing uses `StandardScaler` for numeric features and `OneHotEncoder` for categorical features (`Geography`, `Gender`). The train/test split is stratified so the churn rate is preserved in both sets. Hyperparameter tuning uses `GridSearchCV` with 5-fold cross-validation and F1-score as the optimization metric. SMOTE is explored only on the training data to avoid leaking synthetic examples into the test set.
+
+F1-score and AUC-ROC are the main metrics because the dataset is imbalanced: 2,037 out of 10,000 customers churned, or 20.4%.
 
 ## Results
 
-The best-performing model in the notebook is **XGBoost (Tuned)**.
+After removing redundant/high-correlation engineered features, XGBoost was the strongest model by F1-score, AUC-ROC, and recall.
 
-| Metric | Value |
-|---|---:|
-| Test Accuracy | 86.8% |
-| Test F1-Score | 0.599 |
-| Test AUC-ROC | 0.869 |
-| Cross-Validation F1 | 0.591 +/- 0.027 |
+| Result | Model | Value |
+|---|---|---:|
+| Best F1-score | XGBoost (Tuned) | 0.599 |
+| Best AUC-ROC | XGBoost (Tuned) | 0.867 |
+| XGBoost accuracy | XGBoost (Tuned) | 86.8% |
+| XGBoost precision | XGBoost (Tuned) | 78.5% |
+| XGBoost recall | XGBoost (Tuned) | 48.4% |
+| XGBoost cross-validation F1 | XGBoost (Tuned) | 0.589 +/- 0.026 |
 
-At the default churn probability threshold of `0.5`, the model identifies:
+At a 0.50 classification threshold, XGBoost flagged 251 customers as likely churners. Of those, 197 were true churners and 54 were false positives, giving 78.5% precision among flagged customers.
 
-- High-risk customers: `254`
-- True positives: `198`
-- False positives: `56`
-- Precision on targeted customers: `77.6%`
+Key data findings:
 
-Using the business assumptions above:
+- Overall churn rate is 20.4%.
+- Germany has the highest churn rate at 32.4%.
+- Female customers have a higher churn rate than male customers in this dataset, 25.1% vs. 16.5%.
+- Churned customers are older on average: 44.8 years old vs. 37.4 for retained customers.
+- Inactive customers churn more often than active customers, 26.9% vs. 14.3%.
+- Customers with 3 or 4 products have very high churn rates, though those groups are small.
 
-| Business Metric | Value |
-|---|---:|
-| Retention campaign cost | $127,000 |
-| Customer lifetime value protected | $1,980,000 |
-| Net benefit | $1,853,000 |
-| ROI | 1459.1% |
-
-These results show that the project achieved its goal: the model identifies a small high-risk segment with enough precision to make targeted retention financially worthwhile.
-
-## Visualizations
-
-The project includes both saved notebook figures and an interactive dashboard.
-
-Interactive:
-
-- `visualizations/churn_dashboard.html` generated by `make dashboard`
-
-Static figures:
-
-![Categorical churn patterns](eda_categorical.png)
-
-![Age distribution](eda_age.png)
-
-![Correlation heatmap](eda_heatmap.png)
-
-![Model comparison](model_comparison_comprehensive.png)
-
-![ROC curves](roc_curves.png)
-
-![Precision-recall curves](precision_recall_curves.png)
-
-![Confusion matrices](confusion_matrices.png)
-
-![Feature importance](feature_importance.png)
-
-![Learning curves](learning_curves.png)
+These results meet the project goal: the model identifies a meaningful high-risk customer segment, and the visualizations explain which customer attributes are most associated with churn.
 
 ## Testing And Continuous Integration
 
-The project includes pytest tests in `tests/test_churn_pipeline.py`. They check that:
+Tests are in `tests/test_churn_pipeline.py`. They check that:
 
-- The dataset loads correctly and identifier columns are removed
-- Feature engineering creates the expected columns without mutating the input data
-- A baseline training pipeline can fit and produce valid classification metrics
+- The dataset loads correctly.
+- Cleaning removes identifier columns and produces no missing values.
+- Feature engineering creates the expected derived columns without mutating the input data.
+- Removed duplicate/high-correlation feature candidates are not recreated, and retained engineered features stay below a 0.90 absolute-correlation threshold against original numeric predictors.
+- A baseline training pipeline returns valid classification metrics.
 
-The GitHub Actions workflow in `.github/workflows/tests.yml` runs:
+The GitHub Actions workflow in `.github/workflows/tests.yml` runs on pushes and pull requests:
 
 ```bash
 make install
 make test
 ```
 
-This keeps the test command consistent between local development and GitHub CI.
+This satisfies the requirement that the repository define a GitHub workflow to test important code paths.
 
-## Repository Structure
+## Supported Environment
 
-```text
-.
-├── .github/workflows/tests.yml
-├── Churn_Modelling.csv
-├── Makefile
-├── README.md
-├── requirements.txt
-├── churn pipeline.ipynb
-├── src/
-│   ├── __init__.py
-│   ├── churn_pipeline.py
-│   └── make_dashboard.py
-├── tests/
-│   └── test_churn_pipeline.py
-└── *.png
-```
+This project targets Python 3.11. GitHub Actions tests it on Ubuntu. The same Python commands also run on Windows; if Windows does not have `make`, use the Python command equivalents listed at the top.
 
-## Main Business Recommendations
+## How To Contribute
 
-Focus retention outreach on customers flagged as high risk, especially customers with patterns associated with churn in the analysis: older age, lower engagement, fewer products, low activity, and geography/gender segments with elevated churn rates.
-
-The current threshold already produces strong positive ROI, but the bank should tune the decision threshold based on campaign capacity. A lower threshold increases recall and catches more churners; a higher threshold increases precision and reduces wasted retention spend.
+Create a branch, make focused changes, and run `make test` before opening a pull request. If a change affects plots, modeling, or the dashboard, also run `make dashboard` or `make notebook` to regenerate the relevant outputs.
 
 ## Limitations And Future Work
 
-The dataset is historical and does not include recent macroeconomic or customer interaction data. A production version should add temporal validation, monitor model drift, retrain on recent customer behavior, and A/B test retention campaigns to measure actual saved revenue.
+The dataset is a static historical sample, so it does not capture time-series customer behavior, recent support interactions, pricing changes, marketing campaigns, or macroeconomic conditions. A production version should validate performance over time, monitor model drift, tune the classification threshold based on retention capacity, and test retention actions with an A/B experiment.

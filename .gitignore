@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+pytest-cache-files-*/
+.jupyter_runtime/
+.ipynb_checkpoints/
+churn pipeline.executed.ipynb
