@@ -1,6 +1,6 @@
 # Bank Customer Churn Prediction
 
-**Presentation video:** Paste the final YouTube recording link here before submission.
+**Presentation video:** https://youtu.be/xrkjOz5YJ4o
 
 ## How To Build And Run
 
